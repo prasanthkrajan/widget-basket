@@ -6,15 +6,15 @@ class Offer
   end
 end
 
-class HalfPriceOffer < Offer
-  def initialize(target_product_code)
-    raise ArgumentError, "HalfPriceOffer can only be applied to 'R01'" unless target_product_code == 'R01'
-    @target_product_code = target_product_code
+class PairDiscountOffer < Offer
+  def initialize(product_code, discount_percentage)
+    @product_code = product_code
+    @discount_percentage = discount_percentage
   end
 
   def calculate_discount(items, product_catalogue)
-    target_items = items.count(@target_product_code)
+    target_items = items.count(@product_code)
     pairs = target_items / 2
-    (pairs * (product_catalogue[@target_product_code] * 0.5)).round(2)
+    (pairs * (product_catalogue[@product_code] * @discount_percentage)).round(2)
   end
 end 
