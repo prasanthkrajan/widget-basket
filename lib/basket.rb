@@ -4,12 +4,9 @@ class Basket
   attr_reader :items
 
   def initialize(product_catalogue:, delivery_charge_rules: nil, offers: [])
-    raise ArgumentError, 'product_catalogue cannot be nil' if product_catalogue.nil?
-    raise ArgumentError, 'product_catalogue must be a Hash' unless product_catalogue.is_a?(Hash)
-    raise ArgumentError, 'product_catalogue cannot be empty' if product_catalogue.empty?
-    raise ArgumentError, 'delivery_charge_rules must respond to calculate_cost' if delivery_charge_rules && !delivery_charge_rules.respond_to?(:calculate_cost)
-    raise ArgumentError, 'offers must be an Array' unless offers.is_a?(Array)
-    raise ArgumentError, 'each offer must respond to calculate_discount' unless offers.all? { |offer| offer.respond_to?(:calculate_discount) }
+    validate_product_catalogue!(product_catalogue)
+    validate_delivery_charge_rules!(delivery_charge_rules)
+    validate_offers!(offers)
     
     @product_catalogue = product_catalogue
     @delivery_charge_rules = delivery_charge_rules
@@ -31,6 +28,28 @@ class Basket
   end
 
   private
+
+  def validate_product_catalogue!(product_catalogue)
+    raise ArgumentError, 'product_catalogue cannot be nil' if product_catalogue.nil?
+    raise ArgumentError, 'product_catalogue must be a Hash' unless product_catalogue.is_a?(Hash)
+    raise ArgumentError, 'product_catalogue cannot be empty' if product_catalogue.empty?
+  end
+
+  def validate_delivery_charge_rules!(delivery_charge_rules)
+    return if delivery_charge_rules.nil?
+    
+    unless delivery_charge_rules.respond_to?(:calculate_cost)
+      raise ArgumentError, 'delivery_charge_rules must respond to calculate_cost'
+    end
+  end
+
+  def validate_offers!(offers)
+    raise ArgumentError, 'offers must be an Array' unless offers.is_a?(Array)
+    
+    unless offers.all? { |offer| offer.respond_to?(:calculate_discount) }
+      raise ArgumentError, 'each offer must respond to calculate_discount'
+    end
+  end
 
   def calculate_discounts
     @offers.sum { |offer| offer.calculate_discount(@items, @product_catalogue) }
