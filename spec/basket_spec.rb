@@ -291,6 +291,56 @@ RSpec.describe Basket do
     end
   end
 
+  describe '#clear' do
+    context 'when basket has items' do
+      before do
+        basket.add('R01')
+        basket.add('G01')
+        basket.add('B01')
+      end
+
+      it 'clears all items from basket' do
+        expect(basket.items.length).to eq(3)
+        basket.clear
+        expect(basket.items).to be_empty
+      end
+
+      it 'resets total calculation to zero' do
+        original_total = basket.total
+        basket.clear
+        # Empty basket should have zero total
+        expect(basket.total).to eq(0.0)
+      end
+
+      it 'allows adding items after clearing' do
+        basket.clear
+        basket.add('R01')
+        expect(basket.items.length).to eq(1)
+        expect(basket.total).to be > 0
+      end
+    end
+
+    context 'when basket is empty' do
+      it 'does nothing and remains empty with zero total' do
+        expect(basket.items).to be_empty
+        basket.clear
+        expect(basket.items).to be_empty
+        # Empty basket should have zero total
+        expect(basket.total).to eq(0.0)
+      end
+    end
+
+    context 'with nil delivery_charge_rules' do
+      let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil, offers: offers) }
+
+      it 'resets total calculation to zero when no delivery charges' do
+        basket.add('R01')
+        basket.clear
+        expect(basket.total).to eq(0.0)
+      end
+    end
+  end
+
   describe '#total' do
 
     it 'calculates total for B01, G01 basket' do

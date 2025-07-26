@@ -15,11 +15,17 @@ class Basket
   end
 
   def add(product_code)
+    # Validate product_code type and format
     raise ArgumentError, 'product_code must be a string' unless product_code.is_a?(String)
     raise ArgumentError, 'product_code cannot be empty' if product_code.strip.empty?
     
     raise ArgumentError, "Product code '#{product_code}' not found in catalogue" unless @product_catalogue.key?(product_code)
     @items << product_code
+    reset_cart
+  end
+
+  def clear
+    @items.clear
     reset_cart
   end
 
@@ -38,6 +44,9 @@ class Basket
   end
 
   def delivery_cost
+    # Return 0 delivery cost if basket is empty
+    return 0.0 if @items.empty?
+    
     @delivery_cost ||= @delivery_charge_rules&.calculate_cost(subtotal - discounts) || 0.0
   end
 
