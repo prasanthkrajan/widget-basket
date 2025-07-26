@@ -10,10 +10,16 @@ class Offer
   end
 end
 
+class Offers
+  def self.new
+    PairDiscountOffer.new
+  end
+end
+
 class PairDiscountOffer < Offer
   attr_reader :product_code, :discount_percentage
 
-  def initialize(product_code, discount_percentage)
+  def initialize(product_code = 'R01', discount_percentage = 0.5)
     @product_code = product_code
     @discount_percentage = discount_percentage
   end

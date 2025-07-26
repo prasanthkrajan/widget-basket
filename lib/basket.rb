@@ -7,15 +7,16 @@ class Basket
     validate_product_catalogue!(product_catalogue)
     validate_delivery_charge_rules!(delivery_charge_rules)
     validate_offers!(offers)
+
+    offers_array = offers.is_a?(Array) ? offers : [offers]
     
     @product_catalogue = product_catalogue
     @delivery_charge_rules = delivery_charge_rules
-    @offers = offers
+    @offers = offers_array
     @items = []
   end
 
   def add(product_code)
-    # Validate product_code type and format
     raise ArgumentError, 'product_code must be a string' unless product_code.is_a?(String)
     raise ArgumentError, 'product_code cannot be empty' if product_code.strip.empty?
     
@@ -44,7 +45,6 @@ class Basket
   end
 
   def delivery_cost
-    # Return 0 delivery cost if basket is empty
     return 0.0 if @items.empty?
     
     @delivery_cost ||= @delivery_charge_rules&.calculate_cost(subtotal - discounts) || 0.0
@@ -95,12 +95,20 @@ class Basket
   end
 
   def validate_offers!(offers)
-    raise ArgumentError, 'offers must be an Array' unless offers.is_a?(Array)
-    
-    unless offers.all? { |offer| offer.respond_to?(:calculate_discount) }
-      raise ArgumentError, 'each offer must respond to calculate_discount'
+    if offers.nil?
+      raise ArgumentError, 'offers must be an Array'
     end
-
-    PairDiscountOffer.validate_collection!(offers)
+    
+    if offers.is_a?(Array)
+      unless offers.all? { |offer| offer.respond_to?(:calculate_discount) }
+        raise ArgumentError, 'each offer must respond to calculate_discount'
+      end
+      PairDiscountOffer.validate_collection!(offers)
+    else
+      unless offers.respond_to?(:calculate_discount)
+        raise ArgumentError, 'offers must be an Array'
+      end
+      PairDiscountOffer.validate_collection!([offers])
+    end
   end
 end 

@@ -47,6 +47,22 @@ RSpec.describe Basket do
         }.not_to raise_error
       end
 
+      it 'initializes successfully with PairDiscountOffer.new (default values)' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: [PairDiscountOffer.new])
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with multiple PairDiscountOffer.new instances' do
+        expect {
+          Basket.new(
+            product_catalogue: product_catalogue, 
+            delivery_charge_rules: delivery_charge_rules, 
+            offers: [PairDiscountOffer.new, PairDiscountOffer.new('G01', 0.3)]
+          )
+        }.not_to raise_error
+      end
+
       it 'initializes successfully with nil delivery_charge_rules' do
         expect {
           Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil)
@@ -80,6 +96,66 @@ RSpec.describe Basket do
       it 'initializes successfully with only product_catalogue and offers' do
         expect {
           Basket.new(product_catalogue: product_catalogue, offers: offers)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with default delivery charges and default offer' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with custom delivery charges and default offer' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with default delivery charges and custom offer' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, offers: PairDiscountOffer.new('G01', 0.3))
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with single offer object (not array)' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, offers: PairDiscountOffer.new)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with nil delivery_charge_rules and custom offers' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil, offers: [PairDiscountOffer.new])
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with default delivery charges and default offer using explicit defaults' do
+        expect {
+          Basket.new(
+            product_catalogue: product_catalogue, 
+            delivery_charge_rules: DeliveryChargeRules.new, 
+            offers: PairDiscountOffer.new
+          )
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with Offers.new and DeliveryChargeRules.new' do
+        expect {
+          Basket.new(
+            product_catalogue: product_catalogue, 
+            delivery_charge_rules: DeliveryChargeRules.new, 
+            offers: Offers.new
+          )
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with only product_catalogue, DeliveryChargeRules.new, and Offers.new' do
+        expect {
+          Basket.new(
+            product_catalogue: product_catalogue, 
+            delivery_charge_rules: DeliveryChargeRules.new, 
+            offers: Offers.new
+          )
         }.not_to raise_error
       end
 
@@ -479,6 +555,19 @@ RSpec.describe Basket do
         # Delivery: free (since 91.83 >= 90), total = 91.83
         expect(basket.total).to eq(91.83)
       end
+
+      it 'applies default 50% discount to second R01 when using PairDiscountOffer.new' do
+        basket_with_default_offer = Basket.new(
+          product_catalogue: product_catalogue, 
+          delivery_charge_rules: delivery_charge_rules, 
+          offers: [PairDiscountOffer.new]
+        )
+        basket_with_default_offer.add('R01')
+        basket_with_default_offer.add('R01')
+        # R01 = 32.95 each, 1 pair, half price = 16.48 discount, subtotal = 49.42
+        # Delivery: 4.95, total = 54.37
+        expect(basket_with_default_offer.total).to eq(54.37)
+      end
     end
 
     context 'with simple constructor (only product_catalogue)' do
@@ -507,6 +596,108 @@ RSpec.describe Basket do
         # R01 = 32.95 each, G01 = 24.95, subtotal = 90.85
         # Discount: 0 (default empty offers), delivery: 0 (default nil rules), total = 90.85
         expect(basket.total).to eq(90.85)
+      end
+    end
+
+    context 'with default constructor (product_catalogue only)' do
+      let(:basket) { Basket.new(product_catalogue: product_catalogue) }
+
+      it 'calculates product-only total without delivery charges or discounts' do
+        basket.add('R01')
+        basket.add('R01')
+        # R01 = 32.95 each, subtotal = 65.90
+        # Discount: 0 (no offers), delivery: 0 (nil rules), total = 65.90
+        expect(basket.total).to eq(65.90)
+      end
+
+      it 'calculates total without delivery charges' do
+        basket.add('B01')
+        # B01 = 7.95, subtotal = 7.95
+        # Discount: 0 (no offers), delivery: 0 (nil rules), total = 7.95
+        expect(basket.total).to eq(7.95)
+      end
+
+      it 'calculates total for multiple products without delivery charges' do
+        basket.add('R01')
+        basket.add('G01')
+        basket.add('B01')
+        # R01 = 32.95, G01 = 24.95, B01 = 7.95, subtotal = 65.85
+        # Discount: 0 (no offers), delivery: 0 (nil rules), total = 65.85
+        expect(basket.total).to eq(65.85)
+      end
+    end
+
+    context 'with explicit default constructor' do
+      let(:basket) { 
+        Basket.new(
+          product_catalogue: product_catalogue, 
+          delivery_charge_rules: DeliveryChargeRules.new, 
+          offers: PairDiscountOffer.new
+        ) 
+      }
+
+      it 'applies default 50% discount to second R01' do
+        basket.add('R01')
+        basket.add('R01')
+        # R01 = 32.95 each, 1 pair, half price = 16.48 discount, subtotal = 49.42
+        # Delivery: 4.95 (default rules), total = 54.37
+        expect(basket.total).to eq(54.37)
+      end
+
+      it 'calculates total with default delivery charges' do
+        basket.add('B01')
+        # B01 = 7.95, subtotal = 7.95
+        # Discount: 0 (no pairs), delivery: 4.95 (default rules), total = 12.90
+        expect(basket.total).to eq(12.90)
+      end
+
+      it 'calculates total for large order with default rules' do
+        basket.add('R01')
+        basket.add('R01')
+        basket.add('G01')
+        basket.add('G01')
+        # R01 = 32.95 each, G01 = 24.95 each, subtotal = 115.80
+        # R01 discount: 16.48 (1 pair), G01 discount: 0 (no pairs)
+        # Subtotal after discounts: 99.32
+        # Delivery: free (since 99.32 >= 90), total = 99.32
+        expect(basket.total).to eq(99.32)
+      end
+    end
+
+    context 'with Offers.new constructor' do
+      let(:basket) { 
+        Basket.new(
+          product_catalogue: product_catalogue, 
+          delivery_charge_rules: DeliveryChargeRules.new, 
+          offers: Offers.new
+        ) 
+      }
+
+      it 'applies default 50% discount to second R01 using Offers.new' do
+        basket.add('R01')
+        basket.add('R01')
+        # R01 = 32.95 each, 1 pair, half price = 16.48 discount, subtotal = 49.42
+        # Delivery: 4.95 (default rules), total = 54.37
+        expect(basket.total).to eq(54.37)
+      end
+
+      it 'calculates total with default delivery charges using Offers.new' do
+        basket.add('B01')
+        # B01 = 7.95, subtotal = 7.95
+        # Discount: 0 (no pairs), delivery: 4.95 (default rules), total = 12.90
+        expect(basket.total).to eq(12.90)
+      end
+
+      it 'calculates total for large order with default rules using Offers.new' do
+        basket.add('R01')
+        basket.add('R01')
+        basket.add('G01')
+        basket.add('G01')
+        # R01 = 32.95 each, G01 = 24.95 each, subtotal = 115.80
+        # R01 discount: 16.48 (1 pair), G01 discount: 0 (no pairs)
+        # Subtotal after discounts: 99.32
+        # Delivery: free (since 99.32 >= 90), total = 99.32
+        expect(basket.total).to eq(99.32)
       end
     end
 
