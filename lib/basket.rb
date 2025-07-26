@@ -3,7 +3,7 @@
 class Basket
   attr_reader :items
 
-  def initialize(product_catalogue:, delivery_charge_rules: nil, offers: [])
+  def initialize(product_catalogue:, delivery_charge_rules:, offers:)
     @product_catalogue = product_catalogue
     validate_product_catalogue!(@product_catalogue)
     validate_delivery_charge_rules!(delivery_charge_rules)
@@ -23,6 +23,7 @@ class Basket
     raise ArgumentError, "Product code '#{product_code}' not found in catalogue" unless @product_catalogue.key?(product_code)
     @items << product_code
     reset_cart
+    product_code
   end
 
   def clear
@@ -72,7 +73,7 @@ class Basket
   end
 
   def validate_delivery_charge_rules!(delivery_charge_rules)
-    return if delivery_charge_rules.nil?
+    raise ArgumentError, 'delivery_charge_rules cannot be nil' if delivery_charge_rules.nil?
     
     unless delivery_charge_rules.respond_to?(:calculate_cost)
       raise ArgumentError, 'delivery_charge_rules must respond to calculate_cost'
@@ -80,9 +81,7 @@ class Basket
   end
 
   def validate_offers!(offers)
-    if offers.nil?
-      raise ArgumentError, 'offers must be an Array'
-    end
+    raise ArgumentError, 'offers cannot be nil' if offers.nil?
     
     if offers.is_a?(Array)
       unless offers.all? { |offer| offer.respond_to?(:calculate_discount) }
