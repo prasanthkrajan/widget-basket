@@ -15,7 +15,7 @@ class Basket
   end
 
   def add(product_code)
-    raise ArgumentError unless @product_catalogue.key?(product_code)
+    raise ArgumentError, "Product code '#{product_code}' not found in catalogue" unless @product_catalogue.key?(product_code)
     @items << product_code
   end
 
