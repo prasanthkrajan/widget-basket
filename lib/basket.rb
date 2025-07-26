@@ -49,6 +49,8 @@ class Basket
     unless offers.all? { |offer| offer.respond_to?(:calculate_discount) }
       raise ArgumentError, 'each offer must respond to calculate_discount'
     end
+
+    PairDiscountOffer.validate_collection!(offers)
   end
 
   def calculate_discounts

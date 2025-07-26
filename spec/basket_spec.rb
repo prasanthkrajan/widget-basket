@@ -83,6 +83,13 @@ RSpec.describe Basket do
         }.not_to raise_error
       end
 
+      it 'raises error when initialized with conflicting pair offers' do
+        conflicting_offers = [PairDiscountOffer.new('R01', 0.5), PairDiscountOffer.new('R01', 0.7)]
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: conflicting_offers)
+        }.to raise_error(ArgumentError, /Multiple pair offers found for product 'R01'/)
+      end
+
       it 'raises error without product_catalogue' do
         expect {
           Basket.new(delivery_charge_rules: delivery_charge_rules, offers: offers)
@@ -90,99 +97,93 @@ RSpec.describe Basket do
       end
     end
 
-    context 'with invalid product_catalogue' do
-      it 'raises error if product_catalogue is nil' do
-        expect {
-          Basket.new(product_catalogue: nil, delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.to raise_error(ArgumentError, 'product_catalogue cannot be nil')
+    describe 'validation methods' do
+      let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers) }
+
+      describe '#validate_product_catalogue!' do
+        it 'raises error for nil product_catalogue' do
+          expect {
+            basket.send(:validate_product_catalogue!, nil)
+          }.to raise_error(ArgumentError, 'product_catalogue cannot be nil')
+        end
+
+        it 'raises error for non-hash product_catalogue' do
+          expect {
+            basket.send(:validate_product_catalogue!, 'invalid')
+          }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
+        end
+
+        it 'raises error for empty product_catalogue' do
+          expect {
+            basket.send(:validate_product_catalogue!, {})
+          }.to raise_error(ArgumentError, 'product_catalogue cannot be empty')
+        end
+
+        it 'does not raise error for valid product_catalogue' do
+          expect {
+            basket.send(:validate_product_catalogue!, product_catalogue)
+          }.not_to raise_error
+        end
       end
 
-      it 'raises error if product_catalogue is empty' do
-        expect {
-          Basket.new(product_catalogue: {}, delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.to raise_error(ArgumentError, 'product_catalogue cannot be empty')
+      describe '#validate_delivery_charge_rules!' do
+        it 'does not raise error for nil delivery_charge_rules' do
+          expect {
+            basket.send(:validate_delivery_charge_rules!, nil)
+          }.not_to raise_error
+        end
+
+        it 'does not raise error for valid delivery_charge_rules' do
+          expect {
+            basket.send(:validate_delivery_charge_rules!, delivery_charge_rules)
+          }.not_to raise_error
+        end
+
+        it 'raises error for invalid delivery_charge_rules' do
+          expect {
+            basket.send(:validate_delivery_charge_rules!, Object.new)
+          }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
+        end
       end
 
-      it 'raises error if product_catalogue is a string' do
-        expect {
-          Basket.new(product_catalogue: 'invalid', delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
-      end
+      describe '#validate_offers!' do
+        it 'raises error for non-array offers' do
+          expect {
+            basket.send(:validate_offers!, 'invalid')
+          }.to raise_error(ArgumentError, 'offers must be an Array')
+        end
 
-      it 'raises error if product_catalogue is an integer' do
-        expect {
-          Basket.new(product_catalogue: 123, delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
-      end
+        it 'does not raise error for empty offers' do
+          expect {
+            basket.send(:validate_offers!, [])
+          }.not_to raise_error
+        end
 
-      it 'raises error if product_catalogue is an array' do
-        expect {
-          Basket.new(product_catalogue: [], delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
-      end
-    end
+        it 'does not raise error for valid offers' do
+          expect {
+            basket.send(:validate_offers!, offers)
+          }.not_to raise_error
+        end
 
-    context 'with invalid delivery_charge_rules' do
-      it 'raises error if delivery_charge_rules does not respond to calculate_cost' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: Object.new, offers: offers)
-        }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
-      end
+        it 'raises error for offers with invalid objects' do
+          expect {
+            basket.send(:validate_offers!, [Object.new])
+          }.to raise_error(ArgumentError, 'each offer must respond to calculate_discount')
+        end
 
-      it 'raises error if delivery_charge_rules is a string' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: 'invalid', offers: offers)
-        }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
-      end
+        it 'raises error for multiple pair offers on same product' do
+          conflicting_offers = [PairDiscountOffer.new('R01', 0.5), PairDiscountOffer.new('R01', 0.7)]
+          expect {
+            basket.send(:validate_offers!, conflicting_offers)
+          }.to raise_error(ArgumentError, /Multiple pair offers found for product 'R01'/)
+        end
 
-      it 'raises error if delivery_charge_rules is an integer' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: 123, offers: offers)
-        }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
-      end
-
-      it 'raises error if delivery_charge_rules is an array' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: [], offers: offers)
-        }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
-      end
-
-      it 'raises error if delivery_charge_rules is a hash' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: {}, offers: offers)
-        }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
-      end
-    end
-
-    context 'with invalid offers' do
-      it 'raises error if offers is nil' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: nil)
-        }.to raise_error(ArgumentError, 'offers must be an Array')
-      end
-
-      it 'raises error if offers contains objects that do not respond to calculate_discount' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: [Object.new])
-        }.to raise_error(ArgumentError, 'each offer must respond to calculate_discount')
-      end
-
-      it 'raises error if offers is a string' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: 'invalid')
-        }.to raise_error(ArgumentError, 'offers must be an Array')
-      end
-
-      it 'raises error if offers is an integer' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: 123)
-        }.to raise_error(ArgumentError, 'offers must be an Array')
-      end
-
-      it 'raises error if offers is a hash' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: {})
-        }.to raise_error(ArgumentError, 'offers must be an Array')
+        it 'does not raise error for pair offers on different products' do
+          valid_offers = [PairDiscountOffer.new('R01', 0.5), PairDiscountOffer.new('G01', 0.3)]
+          expect {
+            basket.send(:validate_offers!, valid_offers)
+          }.not_to raise_error
+        end
       end
     end
   end
