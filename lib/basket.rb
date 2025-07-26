@@ -7,9 +7,12 @@ class Basket
     raise ArgumentError, 'product_catalogue cannot be nil' if product_catalogue.nil?
     raise ArgumentError, 'delivery_charge_rules cannot be nil' if delivery_charge_rules.nil?
     raise ArgumentError, 'offers cannot be nil' if offers.nil?
+    raise ArgumentError, 'product_catalogue must be a Hash' unless product_catalogue.is_a?(Hash)
+    raise ArgumentError, 'offers must be an Array' unless offers.is_a?(Array)
     raise ArgumentError, 'product_catalogue cannot be empty' if product_catalogue.empty?
     raise ArgumentError, 'offers cannot be empty' if offers.empty?
     raise ArgumentError, 'delivery_charge_rules must respond to calculate_cost' unless delivery_charge_rules.respond_to?(:calculate_cost)
+    raise ArgumentError, 'each offer must respond to calculate_discount' unless offers.all? { |offer| offer.respond_to?(:calculate_discount) }
     
     @product_catalogue = product_catalogue
     @delivery_charge_rules = delivery_charge_rules

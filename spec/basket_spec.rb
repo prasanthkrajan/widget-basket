@@ -9,6 +9,75 @@ RSpec.describe Basket do
   let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers) }
 
   describe '#initialize' do
+    context 'with valid parameters' do
+      it 'initializes successfully with valid product_catalogue' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with valid delivery_charge_rules' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with valid offers' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with multiple offers' do
+        multiple_offers = [PairDiscountOffer.new('R01', 0.5), PairDiscountOffer.new('G01', 0.3)]
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: multiple_offers)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with custom delivery_charge_rules object' do
+        custom_rules = Class.new do
+          def calculate_cost(order_total)
+            5.0
+          end
+        end.new
+        
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: custom_rules, offers: offers)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with custom offer object' do
+        custom_offer = Class.new do
+          def calculate_discount(items, product_catalogue)
+            0.0
+          end
+        end.new
+        
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: [custom_offer])
+        }.not_to raise_error
+      end
+
+      it 'raises error when required keyword arguments are missing' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue)
+        }.to raise_error(ArgumentError, /missing keyword/)
+      end
+
+      it 'raises error when delivery_charge_rules is missing' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, offers: offers)
+        }.to raise_error(ArgumentError, /missing keyword/)
+      end
+
+      it 'raises error when offers is missing' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules)
+        }.to raise_error(ArgumentError, /missing keyword/)
+      end
+    end
+
     context 'with invalid product_catalogue' do
       it 'raises error if product_catalogue is nil' do
         expect {
@@ -20,6 +89,24 @@ RSpec.describe Basket do
         expect {
           Basket.new(product_catalogue: {}, delivery_charge_rules: delivery_charge_rules, offers: offers)
         }.to raise_error(ArgumentError, 'product_catalogue cannot be empty')
+      end
+
+      it 'raises error if product_catalogue is a string' do
+        expect {
+          Basket.new(product_catalogue: 'invalid', delivery_charge_rules: delivery_charge_rules, offers: offers)
+        }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
+      end
+
+      it 'raises error if product_catalogue is an integer' do
+        expect {
+          Basket.new(product_catalogue: 123, delivery_charge_rules: delivery_charge_rules, offers: offers)
+        }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
+      end
+
+      it 'raises error if product_catalogue is an array' do
+        expect {
+          Basket.new(product_catalogue: [], delivery_charge_rules: delivery_charge_rules, offers: offers)
+        }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
       end
     end
 
@@ -35,6 +122,30 @@ RSpec.describe Basket do
           Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: Object.new, offers: offers)
         }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
       end
+
+      it 'raises error if delivery_charge_rules is a string' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: 'invalid', offers: offers)
+        }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
+      end
+
+      it 'raises error if delivery_charge_rules is an integer' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: 123, offers: offers)
+        }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
+      end
+
+      it 'raises error if delivery_charge_rules is an array' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: [], offers: offers)
+        }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
+      end
+
+      it 'raises error if delivery_charge_rules is a hash' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: {}, offers: offers)
+        }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
+      end
     end
 
     context 'with invalid offers' do
@@ -48,6 +159,30 @@ RSpec.describe Basket do
         expect {
           Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: [])
         }.to raise_error(ArgumentError, 'offers cannot be empty')
+      end
+
+      it 'raises error if offers contains objects that do not respond to calculate_discount' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: [Object.new])
+        }.to raise_error(ArgumentError, 'each offer must respond to calculate_discount')
+      end
+
+      it 'raises error if offers is a string' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: 'invalid')
+        }.to raise_error(ArgumentError, 'offers must be an Array')
+      end
+
+      it 'raises error if offers is an integer' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: 123)
+        }.to raise_error(ArgumentError, 'offers must be an Array')
+      end
+
+      it 'raises error if offers is a hash' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: {})
+        }.to raise_error(ArgumentError, 'offers must be an Array')
       end
     end
   end
