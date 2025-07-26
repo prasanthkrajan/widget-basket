@@ -3,16 +3,49 @@
 require 'spec_helper'
 
 RSpec.describe Basket do
-  let(:basket) { Basket.new }
+  let(:product_catalogue) { ['R01', 'G01', 'B01'] }
+  let(:delivery_charge_rules) { [] }
+  let(:offers) { [] }
+  let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers) }
 
   describe '#add' do
-    it 'adds a product to the basket' do
-      basket.add('R01')
-      expect(basket.items.length).to eq(1)
+    context 'when basket is empty' do
+      it 'adds first product to basket' do
+        basket.add('R01')
+        expect(basket.items.length).to eq(1)
+      end
     end
 
-    it 'raises error for invalid product code' do
-      expect { basket.add('INVALID') }.to raise_error(ArgumentError)
+    context 'when basket already has items' do
+      before do
+        basket.add('R01')
+        basket.add('G01')
+      end
+
+      it 'adds additional product to basket' do
+        basket.add('B01')
+        expect(basket.items.length).to eq(3)
+      end
+    end
+
+    context 'with invalid product code' do
+      it 'raises error for invalid product code' do
+        expect { basket.add('INVALID') }.to raise_error(ArgumentError)
+      end
+    end
+
+    context 'with valid product codes' do
+      it 'accepts R01 product code' do
+        expect { basket.add('R01') }.not_to raise_error
+      end
+
+      it 'accepts G01 product code' do
+        expect { basket.add('G01') }.not_to raise_error
+      end
+
+      it 'accepts B01 product code' do
+        expect { basket.add('B01') }.not_to raise_error
+      end
     end
   end
 
