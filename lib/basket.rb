@@ -4,7 +4,11 @@ class Basket
   attr_reader :items
 
   def initialize(product_catalogue:, delivery_charge_rules:, offers:)
-    @product_catalogue =  product_catalogue || default_product_catalogue
+    @product_catalogue = {
+      'R01' => 32.95,
+      'G01' => 24.95,
+      'B01' => 7.95
+    }
     @delivery_charge_rules = delivery_charge_rules
     @offers = offers
     @items = []
@@ -16,29 +20,23 @@ class Basket
   end
 
   def total
+    validate_delivery_charge_rules!
+    
     subtotal = @items.sum { |code| @product_catalogue[code] }
-    delivery_cost = calculate_delivery_cost(subtotal)
+    delivery_cost = @delivery_charge_rules.calculate_cost(subtotal)
     
     (subtotal + delivery_cost).round(2)
   end
 
   private
 
-  def calculate_delivery_cost(order_total)
-    if order_total >= 90.0
-      0.0
-    elsif order_total >= 50.0
-      2.95
-    else
-      4.95
+  def validate_delivery_charge_rules!
+    if @delivery_charge_rules.nil?
+      raise ArgumentError, 'delivery_charge_rules cannot be nil'
     end
-  end
-
-  def default_product_catalogue
-    {
-      'R01' => 32.95,
-      'G01' => 24.95,
-      'B01' => 7.95
-    }
+    
+    unless @delivery_charge_rules.respond_to?(:calculate_cost)
+      raise ArgumentError, 'delivery_charge_rules must respond to calculate_cost'
+    end
   end
 end 

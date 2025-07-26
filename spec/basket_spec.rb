@@ -3,14 +3,8 @@
 require 'spec_helper'
 
 RSpec.describe Basket do
-  let(:product_catalogue) do 
-  	{
-      'R01' => 32.95,
-      'G01' => 24.95,
-      'B01' => 7.95
-    }
-  end
-  let(:delivery_charge_rules) { [] }
+  let(:product_catalogue) { ['R01', 'G01', 'B01'] }
+  let(:delivery_charge_rules) { DeliveryRules.new }
   let(:offers) { [] }
   let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers) }
 
@@ -56,6 +50,24 @@ RSpec.describe Basket do
   end
 
   describe '#total' do
+    it 'raises error if delivery_charge_rules is nil' do
+      basket = Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil, offers: offers)
+      basket.add('R01')
+      expect { basket.total }.to raise_error(ArgumentError, 'delivery_charge_rules cannot be nil')
+    end
+
+    it 'raises error if delivery_charge_rules does not respond to calculate_cost' do
+      basket = Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: Object.new, offers: offers)
+      basket.add('R01')
+      expect { basket.total }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
+    end
+
+    it 'does not raise error if delivery_charge_rules responds to calculate_cost' do
+      basket = Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: DeliveryRules.new, offers: offers)
+      basket.add('R01')
+      expect { basket.total }.not_to raise_error
+    end
+
     it 'calculates total for B01, G01 basket' do
       basket.add('B01')
       basket.add('G01')
