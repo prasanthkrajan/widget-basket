@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 RSpec.describe Basket do
-  let(:product_catalogue) { ['R01', 'G01', 'B01'] }
+  let(:product_catalogue) { { 'R01' => 32.95, 'G01' => 24.95, 'B01' => 7.95 } }
   let(:delivery_charge_rules) { DeliveryChargeRules.new }
   let(:offers) { [PairDiscountOffer.new('R01', 0.5)] }
   let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers) }

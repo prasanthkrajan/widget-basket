@@ -4,11 +4,7 @@ class Basket
   attr_reader :items
 
   def initialize(product_catalogue:, delivery_charge_rules:, offers: nil)
-    @product_catalogue = {
-      'R01' => 32.95,
-      'G01' => 24.95,
-      'B01' => 7.95
-    }
+    @product_catalogue = product_catalogue
     @delivery_charge_rules = delivery_charge_rules
     @offers = offers.nil? || offers.empty? ? [PairDiscountOffer.new('R01', 0.5)] : offers
     @items = []
