@@ -74,7 +74,7 @@ RSpec.describe PairDiscountOffer do
 
   describe '#calculate_discount' do
     let(:offer) { PairDiscountOffer.new('R01', 0.5) }
-    let(:product_catalogue) { { 'R01' => 32.95, 'G01' => 24.95 } }
+    let(:product_catalogue) { ProductCatalogue.new }
 
     it 'calculates discount for one pair' do
       items = ['R01', 'R01']

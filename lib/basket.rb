@@ -4,13 +4,13 @@ class Basket
   attr_reader :items
 
   def initialize(product_catalogue:, delivery_charge_rules: nil, offers: [])
-    validate_product_catalogue!(product_catalogue)
+    @product_catalogue = product_catalogue
+    validate_product_catalogue!(@product_catalogue)
     validate_delivery_charge_rules!(delivery_charge_rules)
     validate_offers!(offers)
 
     offers_array = offers.is_a?(Array) ? offers : [offers]
     
-    @product_catalogue = product_catalogue
     @delivery_charge_rules = delivery_charge_rules
     @offers = offers_array
     @items = []
@@ -68,22 +68,7 @@ class Basket
 
   def validate_product_catalogue!(product_catalogue)
     raise ArgumentError, 'product_catalogue cannot be nil' if product_catalogue.nil?
-    raise ArgumentError, 'product_catalogue must be a Hash' unless product_catalogue.is_a?(Hash)
-    raise ArgumentError, 'product_catalogue cannot be empty' if product_catalogue.empty?
-    
-    product_catalogue.each do |product_code, price|
-      unless price.is_a?(Numeric)
-        raise ArgumentError, 'product prices must be non-negative numbers'
-      end
-      
-      if price < 0
-        raise ArgumentError, 'product prices must be non-negative numbers'
-      end
-      
-      if price == 0
-        raise ArgumentError, 'product prices must be positive numbers'
-      end
-    end
+    raise ArgumentError, 'product_catalogue must be a ProductCatalogue' unless product_catalogue.is_a?(ProductCatalogue)
   end
 
   def validate_delivery_charge_rules!(delivery_charge_rules)

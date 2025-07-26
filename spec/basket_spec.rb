@@ -3,9 +3,9 @@
 require 'spec_helper'
 
 RSpec.describe Basket do
-  let(:product_catalogue) { { 'R01' => 32.95, 'G01' => 24.95, 'B01' => 7.95 } }
+  let(:product_catalogue) { ProductCatalogue.new }
   let(:delivery_charge_rules) { DeliveryChargeRules.new }
-  let(:offers) { [PairDiscountOffer.new('R01', 0.5)] }
+  let(:offers) { Offers.new }
   let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers) }
 
   describe '#initialize' do
@@ -159,6 +159,33 @@ RSpec.describe Basket do
         }.not_to raise_error
       end
 
+      it 'initializes successfully with ProductCatalogue.new' do
+        expect {
+          Basket.new(product_catalogue: ProductCatalogue.new)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with ProductCatalogue.new and default delivery/offers' do
+        expect {
+          Basket.new(
+            product_catalogue: ProductCatalogue.new,
+            delivery_charge_rules: DeliveryChargeRules.new,
+            offers: Offers.new
+          )
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with custom ProductCatalogue' do
+        custom_catalogue = ProductCatalogue.new({
+          'A01' => 10.0,
+          'B02' => 20.0,
+          'C03' => 30.0
+        })
+        expect {
+          Basket.new(product_catalogue: custom_catalogue)
+        }.not_to raise_error
+      end
+
       it 'raises error when initialized with conflicting pair offers' do
         conflicting_offers = [PairDiscountOffer.new('R01', 0.5), PairDiscountOffer.new('R01', 0.7)]
         expect {
@@ -180,58 +207,28 @@ RSpec.describe Basket do
         }.to raise_error(ArgumentError, 'product_catalogue cannot be nil')
       end
 
-      it 'raises error if product_catalogue is empty' do
-        expect {
-          Basket.new(product_catalogue: {}, delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.to raise_error(ArgumentError, 'product_catalogue cannot be empty')
-      end
-
       it 'raises error if product_catalogue is a string' do
         expect {
           Basket.new(product_catalogue: 'invalid', delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
+        }.to raise_error(ArgumentError, 'product_catalogue must be a ProductCatalogue')
       end
 
       it 'raises error if product_catalogue is an integer' do
         expect {
           Basket.new(product_catalogue: 123, delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
+        }.to raise_error(ArgumentError, 'product_catalogue must be a ProductCatalogue')
       end
 
       it 'raises error if product_catalogue is an array' do
         expect {
           Basket.new(product_catalogue: [], delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
+        }.to raise_error(ArgumentError, 'product_catalogue must be a ProductCatalogue')
       end
 
-      context 'with invalid product prices' do
-        it 'raises error if product price is negative' do
-          invalid_catalogue = { 'R01' => -5.0, 'G01' => 24.95 }
-          expect {
-            Basket.new(product_catalogue: invalid_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
-          }.to raise_error(ArgumentError, 'product prices must be non-negative numbers')
-        end
-
-        it 'raises error if product price is nil' do
-          invalid_catalogue = { 'R01' => nil, 'G01' => 24.95 }
-          expect {
-            Basket.new(product_catalogue: invalid_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
-          }.to raise_error(ArgumentError, 'product prices must be non-negative numbers')
-        end
-
-        it 'raises error if product price is a string' do
-          invalid_catalogue = { 'R01' => '32.95', 'G01' => 24.95 }
-          expect {
-            Basket.new(product_catalogue: invalid_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
-          }.to raise_error(ArgumentError, 'product prices must be non-negative numbers')
-        end
-
-        it 'raises error if product price is zero' do
-          invalid_catalogue = { 'R01' => 0.0, 'G01' => 24.95 }
-          expect {
-            Basket.new(product_catalogue: invalid_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
-          }.to raise_error(ArgumentError, 'product prices must be positive numbers')
-        end
+      it 'raises error if product_catalogue is a hash' do
+        expect {
+          Basket.new(product_catalogue: {}, delivery_charge_rules: delivery_charge_rules, offers: offers)
+        }.to raise_error(ArgumentError, 'product_catalogue must be a ProductCatalogue')
       end
     end
 
@@ -698,6 +695,77 @@ RSpec.describe Basket do
         # Subtotal after discounts: 99.32
         # Delivery: free (since 99.32 >= 90), total = 99.32
         expect(basket.total).to eq(99.32)
+      end
+    end
+
+    context 'with ProductCatalogue.new constructor' do
+      let(:basket) { 
+        Basket.new(
+          product_catalogue: ProductCatalogue.new, 
+          delivery_charge_rules: DeliveryChargeRules.new, 
+          offers: Offers.new
+        ) 
+      }
+
+      it 'applies default 50% discount to second R01 using ProductCatalogue.new' do
+        basket.add('R01')
+        basket.add('R01')
+        # R01 = 32.95 each, 1 pair, half price = 16.48 discount, subtotal = 49.42
+        # Delivery: 4.95 (default rules), total = 54.37
+        expect(basket.total).to eq(54.37)
+      end
+
+      it 'calculates total with default delivery charges using ProductCatalogue.new' do
+        basket.add('B01')
+        # B01 = 7.95, subtotal = 7.95
+        # Discount: 0 (no pairs), delivery: 4.95 (default rules), total = 12.90
+        expect(basket.total).to eq(12.90)
+      end
+
+      it 'calculates total for large order with default rules using ProductCatalogue.new' do
+        basket.add('R01')
+        basket.add('R01')
+        basket.add('G01')
+        basket.add('G01')
+        # R01 = 32.95 each, G01 = 24.95 each, subtotal = 115.80
+        # R01 discount: 16.48 (1 pair), G01 discount: 0 (no pairs)
+        # Subtotal after discounts: 99.32
+        # Delivery: free (since 99.32 >= 90), total = 99.32
+        expect(basket.total).to eq(99.32)
+      end
+    end
+
+    context 'with custom ProductCatalogue constructor' do
+      let(:custom_catalogue) { 
+        ProductCatalogue.new({
+          'A01' => 10.0,
+          'B02' => 20.0,
+          'C03' => 30.0
+        })
+      }
+
+      let(:basket) { 
+        Basket.new(
+          product_catalogue: custom_catalogue, 
+          delivery_charge_rules: DeliveryChargeRules.new, 
+          offers: [PairDiscountOffer.new('A01', 0.5)]
+        ) 
+      }
+
+      it 'calculates total with custom products using ProductCatalogue.new' do
+        basket.add('A01')
+        basket.add('B02')
+        # A01 = 10.0, B02 = 20.0, subtotal = 30.0
+        # Discount: 0 (no pairs), delivery: 4.95 (default rules), total = 34.95
+        expect(basket.total).to eq(34.95)
+      end
+
+      it 'applies discounts to custom products using ProductCatalogue.new' do
+        basket.add('A01')
+        basket.add('A01')
+        # A01 = 10.0 each, 1 pair, half price = 5.0 discount, subtotal = 15.0
+        # Delivery: 4.95 (default rules), total = 19.95
+        expect(basket.total).to eq(19.95)
       end
     end
 
