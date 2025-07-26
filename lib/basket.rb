@@ -17,17 +17,36 @@ class Basket
   def add(product_code)
     raise ArgumentError, "Product code '#{product_code}' not found in catalogue" unless @product_catalogue.key?(product_code)
     @items << product_code
+    reset_cart
   end
 
   def total
-    subtotal = @items.sum { |code| @product_catalogue[code] }
-    discount = calculate_discounts
-    delivery_cost = @delivery_charge_rules&.calculate_cost(subtotal - discount) || 0.0
-
-    (subtotal - discount + delivery_cost).round(2)
+    (subtotal - discounts + delivery_cost).round(2)
   end
 
   private
+
+  def subtotal
+    @subtotal ||= @items.sum { |code| @product_catalogue[code] }
+  end
+
+  def discounts
+    @discounts ||= calculate_discounts
+  end
+
+  def delivery_cost
+    @delivery_cost ||= @delivery_charge_rules&.calculate_cost(subtotal - discounts) || 0.0
+  end
+
+  def calculate_discounts
+    @offers.sum { |offer| offer.calculate_discount(@items, @product_catalogue) }
+  end
+
+  def reset_cart
+    @subtotal = nil
+    @discounts = nil
+    @delivery_cost = nil
+  end
 
   def validate_product_catalogue!(product_catalogue)
     raise ArgumentError, 'product_catalogue cannot be nil' if product_catalogue.nil?
@@ -51,9 +70,5 @@ class Basket
     end
 
     PairDiscountOffer.validate_collection!(offers)
-  end
-
-  def calculate_discounts
-    @offers.sum { |offer| offer.calculate_discount(@items, @product_catalogue) }
   end
 end 
