@@ -4,7 +4,7 @@ require 'spec_helper'
 
 RSpec.describe Basket do
   let(:product_catalogue) { ['R01', 'G01', 'B01'] }
-  let(:delivery_charge_rules) { DeliveryRules.new }
+  let(:delivery_charge_rules) { DeliveryChargeRules.new }
   let(:offers) { [] }
   let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers) }
 
@@ -63,7 +63,7 @@ RSpec.describe Basket do
     end
 
     it 'does not raise error if delivery_charge_rules responds to calculate_cost' do
-      basket = Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: DeliveryRules.new, offers: offers)
+      basket = Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: DeliveryChargeRules.new, offers: offers)
       basket.add('R01')
       expect { basket.total }.not_to raise_error
     end
