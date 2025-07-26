@@ -264,8 +264,9 @@ RSpec.describe Basket do
   describe '#add' do
     context 'when basket is empty' do
       it 'adds first product to basket' do
-        basket.add('R01')
+        result = basket.add('R01')
         expect(basket.items.length).to eq(1)
+        expect(result).to eq('R01')
       end
     end
 
@@ -276,8 +277,9 @@ RSpec.describe Basket do
       end
 
       it 'adds additional product to basket' do
-        basket.add('R01')
+        result = basket.add('R01')
         expect(basket.items.length).to eq(3)
+        expect(result).to eq('R01')
       end
     end
 

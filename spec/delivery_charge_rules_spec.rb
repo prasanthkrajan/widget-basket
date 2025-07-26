@@ -57,6 +57,48 @@ RSpec.describe DeliveryChargeRules do
         expect(rules.calculate_cost(25.0)).to eq(4.95)
       end
     end
+
+    context 'with invalid rules' do
+      it 'raises error for empty rules array' do
+        expect { DeliveryChargeRules.new([]) }.to raise_error(ArgumentError, 'rules cannot be empty')
+      end
+
+      it 'raises error for non-array rules' do
+        expect { DeliveryChargeRules.new('invalid') }.to raise_error(ArgumentError, 'rules must be an Array')
+        expect { DeliveryChargeRules.new({}) }.to raise_error(ArgumentError, 'rules must be an Array')
+        expect { DeliveryChargeRules.new(123) }.to raise_error(ArgumentError, 'rules must be an Array')
+      end
+
+      it 'raises error for rule that is not a hash' do
+        invalid_rules = [{ minimum_order_amount: 50.0, delivery_cost: 2.95 }, 'not a hash']
+        expect { DeliveryChargeRules.new(invalid_rules) }.to raise_error(ArgumentError, 'rule at index 1 must be a Hash')
+      end
+
+      it 'raises error for rule missing required keys' do
+        invalid_rules = [{ minimum_order_amount: 50.0 }]  # Missing delivery_cost
+        expect { DeliveryChargeRules.new(invalid_rules) }.to raise_error(ArgumentError, 'rule at index 0 missing required keys: delivery_cost')
+      end
+
+      it 'raises error for non-numeric minimum_order_amount' do
+        invalid_rules = [{ minimum_order_amount: 'invalid', delivery_cost: 2.95 }]
+        expect { DeliveryChargeRules.new(invalid_rules) }.to raise_error(ArgumentError, 'rule at index 0 minimum_order_amount must be numeric')
+      end
+
+      it 'raises error for non-numeric delivery_cost' do
+        invalid_rules = [{ minimum_order_amount: 50.0, delivery_cost: 'invalid' }]
+        expect { DeliveryChargeRules.new(invalid_rules) }.to raise_error(ArgumentError, 'rule at index 0 delivery_cost must be numeric')
+      end
+
+      it 'raises error for negative minimum_order_amount' do
+        invalid_rules = [{ minimum_order_amount: -10.0, delivery_cost: 2.95 }]
+        expect { DeliveryChargeRules.new(invalid_rules) }.to raise_error(ArgumentError, 'rule at index 0 minimum_order_amount cannot be negative')
+      end
+
+      it 'raises error for negative delivery_cost' do
+        invalid_rules = [{ minimum_order_amount: 50.0, delivery_cost: -5.0 }]
+        expect { DeliveryChargeRules.new(invalid_rules) }.to raise_error(ArgumentError, 'rule at index 0 delivery_cost cannot be negative')
+      end
+    end
   end
 
   describe '#calculate_cost' do

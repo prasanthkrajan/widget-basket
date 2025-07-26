@@ -72,6 +72,67 @@ RSpec.describe PairDiscountOffer do
     end
   end
 
+  describe '#initialize' do
+    context 'with valid parameters' do
+      it 'initializes with default parameters' do
+        offer = PairDiscountOffer.new
+        expect(offer.product_code).to eq('R01')
+        expect(offer.discount_percentage).to eq(0.5)
+      end
+
+      it 'initializes with custom parameters' do
+        offer = PairDiscountOffer.new('G01', 0.3)
+        expect(offer.product_code).to eq('G01')
+        expect(offer.discount_percentage).to eq(0.3)
+      end
+    end
+
+    context 'with invalid parameters' do
+      it 'raises error for nil product_code' do
+        expect { PairDiscountOffer.new(nil, 0.5) }.to raise_error(ArgumentError, 'product_code cannot be nil')
+      end
+
+      it 'raises error for non-string product_code' do
+        expect { PairDiscountOffer.new(123, 0.5) }.to raise_error(ArgumentError, 'product_code must be a string')
+        expect { PairDiscountOffer.new([], 0.5) }.to raise_error(ArgumentError, 'product_code must be a string')
+        expect { PairDiscountOffer.new({}, 0.5) }.to raise_error(ArgumentError, 'product_code must be a string')
+      end
+
+      it 'raises error for empty product_code' do
+        expect { PairDiscountOffer.new('', 0.5) }.to raise_error(ArgumentError, 'product_code cannot be empty')
+        expect { PairDiscountOffer.new('   ', 0.5) }.to raise_error(ArgumentError, 'product_code cannot be empty')
+      end
+
+      it 'raises error for nil discount_percentage' do
+        expect { PairDiscountOffer.new('R01', nil) }.to raise_error(ArgumentError, 'discount_percentage cannot be nil')
+      end
+
+      it 'raises error for non-numeric discount_percentage' do
+        expect { PairDiscountOffer.new('R01', 'invalid') }.to raise_error(ArgumentError, 'discount_percentage must be numeric')
+        expect { PairDiscountOffer.new('R01', []) }.to raise_error(ArgumentError, 'discount_percentage must be numeric')
+        expect { PairDiscountOffer.new('R01', {}) }.to raise_error(ArgumentError, 'discount_percentage must be numeric')
+      end
+
+      it 'raises error for discount_percentage less than 0' do
+        expect { PairDiscountOffer.new('R01', -0.1) }.to raise_error(ArgumentError, 'discount_percentage must be between 0 and 1')
+      end
+
+      it 'raises error for discount_percentage greater than 1' do
+        expect { PairDiscountOffer.new('R01', 1.1) }.to raise_error(ArgumentError, 'discount_percentage must be between 0 and 1')
+      end
+
+      it 'accepts discount_percentage of 0' do
+        offer = PairDiscountOffer.new('R01', 0)
+        expect(offer.discount_percentage).to eq(0)
+      end
+
+      it 'accepts discount_percentage of 1' do
+        offer = PairDiscountOffer.new('R01', 1)
+        expect(offer.discount_percentage).to eq(1)
+      end
+    end
+  end
+
   describe '#calculate_discount' do
     let(:offer) { PairDiscountOffer.new('R01', 0.5) }
     let(:product_catalogue) { ProductCatalogue.new }

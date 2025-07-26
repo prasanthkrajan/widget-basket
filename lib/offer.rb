@@ -20,6 +20,7 @@ class PairDiscountOffer < Offer
   attr_reader :product_code, :discount_percentage
 
   def initialize(product_code = 'R01', discount_percentage = 0.5)
+    validate_parameters!(product_code, discount_percentage)
     @product_code = product_code
     @discount_percentage = discount_percentage
   end
@@ -32,6 +33,18 @@ class PairDiscountOffer < Offer
 
   def conflicts_with?(other_offer)
     other_offer.is_a?(PairDiscountOffer) && other_offer.product_code == product_code
+  end
+
+  private
+
+  def validate_parameters!(product_code, discount_percentage)
+    raise ArgumentError, 'product_code cannot be nil' if product_code.nil?
+    raise ArgumentError, 'product_code must be a string' unless product_code.is_a?(String)
+    raise ArgumentError, 'product_code cannot be empty' if product_code.strip.empty?
+    
+    raise ArgumentError, 'discount_percentage cannot be nil' if discount_percentage.nil?
+    raise ArgumentError, 'discount_percentage must be numeric' unless discount_percentage.is_a?(Numeric)
+    raise ArgumentError, 'discount_percentage must be between 0 and 1' if discount_percentage < 0 || discount_percentage > 1
   end
 
   def self.validate_collection!(offers)
