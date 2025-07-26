@@ -8,6 +8,50 @@ RSpec.describe Basket do
   let(:offers) { [PairDiscountOffer.new('R01', 0.5)] }
   let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers) }
 
+  describe '#initialize' do
+    context 'with invalid product_catalogue' do
+      it 'raises error if product_catalogue is nil' do
+        expect {
+          Basket.new(product_catalogue: nil, delivery_charge_rules: delivery_charge_rules, offers: offers)
+        }.to raise_error(ArgumentError, 'product_catalogue cannot be nil')
+      end
+
+      it 'raises error if product_catalogue is empty' do
+        expect {
+          Basket.new(product_catalogue: {}, delivery_charge_rules: delivery_charge_rules, offers: offers)
+        }.to raise_error(ArgumentError, 'product_catalogue cannot be empty')
+      end
+    end
+
+    context 'with invalid delivery_charge_rules' do
+      it 'raises error if delivery_charge_rules is nil' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil, offers: offers)
+        }.to raise_error(ArgumentError, 'delivery_charge_rules cannot be nil')
+      end
+
+      it 'raises error if delivery_charge_rules does not respond to calculate_cost' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: Object.new, offers: offers)
+        }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
+      end
+    end
+
+    context 'with invalid offers' do
+      it 'raises error if offers is nil' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: nil)
+        }.to raise_error(ArgumentError, 'offers cannot be nil')
+      end
+
+      it 'raises error if offers is empty' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: [])
+        }.to raise_error(ArgumentError, 'offers cannot be empty')
+      end
+    end
+  end
+
   describe '#add' do
     context 'when basket is empty' do
       it 'adds first product to basket' do
@@ -50,23 +94,6 @@ RSpec.describe Basket do
   end
 
   describe '#total' do
-    it 'raises error if delivery_charge_rules is nil' do
-      basket = Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil, offers: offers)
-      basket.add('R01')
-      expect { basket.total }.to raise_error(ArgumentError, 'delivery_charge_rules cannot be nil')
-    end
-
-    it 'raises error if delivery_charge_rules does not respond to calculate_cost' do
-      basket = Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: Object.new, offers: offers)
-      basket.add('R01')
-      expect { basket.total }.to raise_error(ArgumentError, 'delivery_charge_rules must respond to calculate_cost')
-    end
-
-    it 'does not raise error if delivery_charge_rules responds to calculate_cost' do
-      basket = Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: DeliveryChargeRules.new, offers: offers)
-      basket.add('R01')
-      expect { basket.total }.not_to raise_error
-    end
 
     it 'calculates total for B01, G01 basket' do
       basket.add('B01')
