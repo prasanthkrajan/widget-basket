@@ -3,15 +3,16 @@
 class Basket
   attr_reader :items
 
-  def initialize(product_catalogue:, delivery_charge_rules:, offers:)
+  def initialize(product_catalogue:, delivery_charge_rules:, offers: nil)
     @product_catalogue = {
       'R01' => 32.95,
       'G01' => 24.95,
       'B01' => 7.95
     }
     @delivery_charge_rules = delivery_charge_rules
-    @offers = offers
+    @offers = offers.nil? || offers.empty? ? [PairDiscountOffer.new('R01', 0.5)] : offers
     @items = []
+    validate_pair_offers!
   end
 
   def add(product_code)
@@ -43,5 +44,16 @@ class Basket
 
   def calculate_discounts
     @offers.sum { |offer| offer.calculate_discount(@items, @product_catalogue) }
+  end
+
+  def validate_pair_offers!
+    offers_by_product = @offers.group_by { |offer| offer.respond_to?(:product_code) ? offer.product_code : nil }
+    offers_by_product.each do |product_code, product_offers|
+      pair_offers = product_offers.select { |offer| offer.is_a?(PairDiscountOffer) }
+      if pair_offers.size > 1
+        offer_descriptions = pair_offers.map { |offer| "PairDiscountOffer(#{(offer.instance_variable_get(:@discount_percentage) * 100).to_i}%)" }
+        raise ArgumentError, "Multiple pair offers found for product '#{product_code}': #{offer_descriptions.join(' and ')}. Only one pair offer per product is allowed."
+      end
+    end
   end
 end 

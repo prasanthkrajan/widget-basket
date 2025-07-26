@@ -130,5 +130,24 @@ RSpec.describe Basket do
         expect(basket.total).to eq(91.83)
       end
     end
+
+    it 'raises ArgumentError if multiple pair offers are present for the same product' do
+      offers = [PairDiscountOffer.new('R01', 0.5), PairDiscountOffer.new('R01', 0.7)]
+      expect {
+        Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
+      }.to raise_error(ArgumentError, /Multiple pair offers found for product 'R01'/)
+    end
+
+    it 'does not raise error if pair offer and another offer type are present for the same product' do
+      class DummyOffer < Offer
+        def initialize(product_code); @product_code = product_code; end
+        def calculate_discount(*); 0; end
+        def product_code; @product_code; end
+      end
+      offers = [PairDiscountOffer.new('R01', 0.5), DummyOffer.new('R01')]
+      expect {
+        Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
+      }.not_to raise_error
+    end
   end
 end 
