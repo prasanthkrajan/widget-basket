@@ -10,19 +10,7 @@ RSpec.describe Basket do
 
   describe '#initialize' do
     context 'with valid parameters' do
-      it 'initializes successfully with valid product_catalogue' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.not_to raise_error
-      end
-
-      it 'initializes successfully with valid delivery_charge_rules' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
-        }.not_to raise_error
-      end
-
-      it 'initializes successfully with valid offers' do
+      it 'initializes successfully with valid product_catalogue, delivery_charge_rules and offers' do
         expect {
           Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
         }.not_to raise_error
@@ -59,21 +47,45 @@ RSpec.describe Basket do
         }.not_to raise_error
       end
 
-      it 'raises error when required keyword arguments are missing' do
+      it 'initializes successfully with nil delivery_charge_rules' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with empty offers' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, offers: [])
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with nil delivery_charge_rules and empty offers' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil, offers: [])
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with only product_catalogue' do
         expect {
           Basket.new(product_catalogue: product_catalogue)
-        }.to raise_error(ArgumentError, /missing keyword/)
+        }.not_to raise_error
       end
 
-      it 'raises error when delivery_charge_rules is missing' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, offers: offers)
-        }.to raise_error(ArgumentError, /missing keyword/)
-      end
-
-      it 'raises error when offers is missing' do
+      it 'initializes successfully with only product_catalogue and delivery_charge_rules' do
         expect {
           Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules)
+        }.not_to raise_error
+      end
+
+      it 'initializes successfully with only product_catalogue and offers' do
+        expect {
+          Basket.new(product_catalogue: product_catalogue, offers: offers)
+        }.not_to raise_error
+      end
+
+      it 'raises error without product_catalogue' do
+        expect {
+          Basket.new(delivery_charge_rules: delivery_charge_rules, offers: offers)
         }.to raise_error(ArgumentError, /missing keyword/)
       end
     end
@@ -111,12 +123,6 @@ RSpec.describe Basket do
     end
 
     context 'with invalid delivery_charge_rules' do
-      it 'raises error if delivery_charge_rules is nil' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil, offers: offers)
-        }.to raise_error(ArgumentError, 'delivery_charge_rules cannot be nil')
-      end
-
       it 'raises error if delivery_charge_rules does not respond to calculate_cost' do
         expect {
           Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: Object.new, offers: offers)
@@ -152,13 +158,7 @@ RSpec.describe Basket do
       it 'raises error if offers is nil' do
         expect {
           Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: nil)
-        }.to raise_error(ArgumentError, 'offers cannot be nil')
-      end
-
-      it 'raises error if offers is empty' do
-        expect {
-          Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: [])
-        }.to raise_error(ArgumentError, 'offers cannot be empty')
+        }.to raise_error(ArgumentError, 'offers must be an Array')
       end
 
       it 'raises error if offers contains objects that do not respond to calculate_discount' do
@@ -255,6 +255,80 @@ RSpec.describe Basket do
       basket.add('R01')
       basket.add('R01')
       expect(basket.total).to eq(98.27)
+    end
+
+    context 'with nil delivery_charge_rules' do
+      let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil, offers: offers) }
+
+      it 'calculates total without delivery charges' do
+        basket.add('R01')
+        basket.add('G01')
+        # R01 = 32.95, G01 = 24.95, subtotal = 57.90
+        # Discount: 0 (no pairs), delivery: 0 (nil rules), total = 57.90
+        expect(basket.total).to eq(57.90)
+      end
+
+      it 'calculates total with discounts but no delivery charges' do
+        basket.add('R01')
+        basket.add('R01')
+        # R01 = 32.95 each, 1 pair, half price = 16.48 discount, subtotal = 49.42
+        # Delivery: 0 (nil rules), total = 49.42
+        expect(basket.total).to eq(49.42)
+      end
+    end
+
+    context 'with empty offers' do
+      let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: delivery_charge_rules, offers: []) }
+
+      it 'calculates total without discounts' do
+        basket.add('R01')
+        basket.add('R01')
+        # R01 = 32.95 each, subtotal = 65.90
+        # Discount: 0 (empty offers), delivery: 2.95 (since 65.90 >= 50), total = 68.85
+        expect(basket.total).to eq(68.85)
+      end
+
+      it 'calculates total for multiple products without discounts' do
+        basket.add('B01')
+        basket.add('G01')
+        basket.add('R01')
+        # B01 = 7.95, G01 = 24.95, R01 = 32.95, subtotal = 65.85
+        # Discount: 0 (empty offers), delivery: 2.95 (since 65.85 >= 50), total = 68.80
+        expect(basket.total).to eq(68.80)
+      end
+    end
+
+    context 'with nil delivery_charge_rules and empty offers' do
+      let(:basket) { Basket.new(product_catalogue: product_catalogue, delivery_charge_rules: nil, offers: []) }
+
+      it 'calculates product-only total' do
+        basket.add('R01')
+        basket.add('G01')
+        basket.add('B01')
+        # R01 = 32.95, G01 = 24.95, B01 = 7.95, subtotal = 65.85
+        # Discount: 0 (empty offers), delivery: 0 (nil rules), total = 65.85
+        expect(basket.total).to eq(65.85)
+      end
+    end
+
+    context 'with simple constructor (only product_catalogue)' do
+      let(:basket) { Basket.new(product_catalogue: product_catalogue) }
+
+      it 'calculates product-only total' do
+        basket.add('R01')
+        basket.add('G01')
+        basket.add('B01')
+        # R01 = 32.95, G01 = 24.95, B01 = 7.95, subtotal = 65.85
+        # Discount: 0 (default empty offers), delivery: 0 (default nil rules), total = 65.85
+        expect(basket.total).to eq(65.85)
+      end
+
+      it 'calculates total for single product' do
+        basket.add('R01')
+        # R01 = 32.95, subtotal = 32.95
+        # Discount: 0, delivery: 0, total = 32.95
+        expect(basket.total).to eq(32.95)
+      end
     end
 
     context 'pair discount offer applies to any product code and discount' do
