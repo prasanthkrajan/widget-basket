@@ -276,6 +276,13 @@ RSpec.describe Basket do
         # Delivery: 0 (nil rules), total = 49.42
         expect(basket.total).to eq(49.42)
       end
+
+      it 'calculates total for single product without delivery charges' do
+        basket.add('R01')
+        # R01 = 32.95, subtotal = 32.95
+        # Discount: 0, delivery: 0 (nil rules), total = 32.95
+        expect(basket.total).to eq(32.95)
+      end
     end
 
     context 'with empty offers' do
@@ -297,6 +304,13 @@ RSpec.describe Basket do
         # Discount: 0 (empty offers), delivery: 2.95 (since 65.85 >= 50), total = 68.80
         expect(basket.total).to eq(68.80)
       end
+
+      it 'calculates total for small order without discounts' do
+        basket.add('B01')
+        # B01 = 7.95, subtotal = 7.95
+        # Discount: 0 (empty offers), delivery: 4.95 (since 7.95 < 50), total = 12.90
+        expect(basket.total).to eq(12.90)
+      end
     end
 
     context 'with nil delivery_charge_rules and empty offers' do
@@ -310,24 +324,11 @@ RSpec.describe Basket do
         # Discount: 0 (empty offers), delivery: 0 (nil rules), total = 65.85
         expect(basket.total).to eq(65.85)
       end
-    end
-
-    context 'with simple constructor (only product_catalogue)' do
-      let(:basket) { Basket.new(product_catalogue: product_catalogue) }
-
-      it 'calculates product-only total' do
-        basket.add('R01')
-        basket.add('G01')
-        basket.add('B01')
-        # R01 = 32.95, G01 = 24.95, B01 = 7.95, subtotal = 65.85
-        # Discount: 0 (default empty offers), delivery: 0 (default nil rules), total = 65.85
-        expect(basket.total).to eq(65.85)
-      end
 
       it 'calculates total for single product' do
         basket.add('R01')
         # R01 = 32.95, subtotal = 32.95
-        # Discount: 0, delivery: 0, total = 32.95
+        # Discount: 0 (empty offers), delivery: 0 (nil rules), total = 32.95
         expect(basket.total).to eq(32.95)
       end
     end
@@ -365,6 +366,35 @@ RSpec.describe Basket do
         # Subtotal after discounts: 91.83
         # Delivery: free (since 91.83 >= 90), total = 91.83
         expect(basket.total).to eq(91.83)
+      end
+    end
+
+    context 'with simple constructor (only product_catalogue)' do
+      let(:basket) { Basket.new(product_catalogue: product_catalogue) }
+
+      it 'calculates product-only total' do
+        basket.add('R01')
+        basket.add('G01')
+        basket.add('B01')
+        # R01 = 32.95, G01 = 24.95, B01 = 7.95, subtotal = 65.85
+        # Discount: 0 (default empty offers), delivery: 0 (default nil rules), total = 65.85
+        expect(basket.total).to eq(65.85)
+      end
+
+      it 'calculates total for single product' do
+        basket.add('R01')
+        # R01 = 32.95, subtotal = 32.95
+        # Discount: 0 (default empty offers), delivery: 0 (default nil rules), total = 32.95
+        expect(basket.total).to eq(32.95)
+      end
+
+      it 'calculates total for multiple products' do
+        basket.add('R01')
+        basket.add('R01')
+        basket.add('G01')
+        # R01 = 32.95 each, G01 = 24.95, subtotal = 90.85
+        # Discount: 0 (default empty offers), delivery: 0 (default nil rules), total = 90.85
+        expect(basket.total).to eq(90.85)
       end
     end
   end
