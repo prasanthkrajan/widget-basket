@@ -23,9 +23,10 @@ class Basket
     validate_delivery_charge_rules!
     
     subtotal = @items.sum { |code| @product_catalogue[code] }
-    delivery_cost = @delivery_charge_rules.calculate_cost(subtotal)
+    discount = calculate_discounts
+    delivery_cost = @delivery_charge_rules.calculate_cost(subtotal - discount)
     
-    (subtotal + delivery_cost).round(2)
+    (subtotal - discount + delivery_cost).round(2)
   end
 
   private
@@ -38,5 +39,9 @@ class Basket
     unless @delivery_charge_rules.respond_to?(:calculate_cost)
       raise ArgumentError, 'delivery_charge_rules must respond to calculate_cost'
     end
+  end
+
+  def calculate_discounts
+    @offers.sum { |offer| offer.calculate_discount(@items, @product_catalogue) }
   end
 end 
