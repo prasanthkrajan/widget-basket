@@ -8,7 +8,9 @@ class DeliveryChargeRules
   def calculate_cost(order_total)
     validate_order_total!(order_total)
     
-    rule = @rules.find { |r| order_total >= r[:minimum_order_amount] }
+    # Find the rule with the highest threshold that the order total meets or exceeds
+    rule = @rules.select { |r| order_total >= r[:minimum_order_amount] }
+                 .max_by { |r| r[:minimum_order_amount] }
     rule ? rule[:delivery_cost] : 0.0
   end
 
