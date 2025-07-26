@@ -15,6 +15,9 @@ class Basket
   end
 
   def add(product_code)
+    raise ArgumentError, 'product_code must be a string' unless product_code.is_a?(String)
+    raise ArgumentError, 'product_code cannot be empty' if product_code.strip.empty?
+    
     raise ArgumentError, "Product code '#{product_code}' not found in catalogue" unless @product_catalogue.key?(product_code)
     @items << product_code
     reset_cart
@@ -39,7 +42,13 @@ class Basket
   end
 
   def calculate_discounts
-    @offers.sum { |offer| offer.calculate_discount(@items, @product_catalogue) }
+    total_discount = @offers.sum { |offer| offer.calculate_discount(@items, @product_catalogue) }
+    
+    if total_discount < 0
+      raise ArgumentError, 'discounts cannot be negative'
+    end
+    
+    total_discount
   end
 
   def reset_cart
@@ -52,6 +61,20 @@ class Basket
     raise ArgumentError, 'product_catalogue cannot be nil' if product_catalogue.nil?
     raise ArgumentError, 'product_catalogue must be a Hash' unless product_catalogue.is_a?(Hash)
     raise ArgumentError, 'product_catalogue cannot be empty' if product_catalogue.empty?
+    
+    product_catalogue.each do |product_code, price|
+      unless price.is_a?(Numeric)
+        raise ArgumentError, 'product prices must be non-negative numbers'
+      end
+      
+      if price < 0
+        raise ArgumentError, 'product prices must be non-negative numbers'
+      end
+      
+      if price == 0
+        raise ArgumentError, 'product prices must be positive numbers'
+      end
+    end
   end
 
   def validate_delivery_charge_rules!(delivery_charge_rules)

@@ -127,6 +127,36 @@ RSpec.describe Basket do
           Basket.new(product_catalogue: [], delivery_charge_rules: delivery_charge_rules, offers: offers)
         }.to raise_error(ArgumentError, 'product_catalogue must be a Hash')
       end
+
+      context 'with invalid product prices' do
+        it 'raises error if product price is negative' do
+          invalid_catalogue = { 'R01' => -5.0, 'G01' => 24.95 }
+          expect {
+            Basket.new(product_catalogue: invalid_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
+          }.to raise_error(ArgumentError, 'product prices must be non-negative numbers')
+        end
+
+        it 'raises error if product price is nil' do
+          invalid_catalogue = { 'R01' => nil, 'G01' => 24.95 }
+          expect {
+            Basket.new(product_catalogue: invalid_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
+          }.to raise_error(ArgumentError, 'product prices must be non-negative numbers')
+        end
+
+        it 'raises error if product price is a string' do
+          invalid_catalogue = { 'R01' => '32.95', 'G01' => 24.95 }
+          expect {
+            Basket.new(product_catalogue: invalid_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
+          }.to raise_error(ArgumentError, 'product prices must be non-negative numbers')
+        end
+
+        it 'raises error if product price is zero' do
+          invalid_catalogue = { 'R01' => 0.0, 'G01' => 24.95 }
+          expect {
+            Basket.new(product_catalogue: invalid_catalogue, delivery_charge_rules: delivery_charge_rules, offers: offers)
+          }.to raise_error(ArgumentError, 'product prices must be positive numbers')
+        end
+      end
     end
 
     context 'with invalid delivery_charge_rules' do
@@ -235,6 +265,28 @@ RSpec.describe Basket do
 
       it 'accepts B01' do
         expect { basket.add('B01') }.not_to raise_error
+      end
+    end
+
+    context 'with invalid product code types' do
+      it 'raises error if product_code is nil' do
+        expect { basket.add(nil) }.to raise_error(ArgumentError, 'product_code must be a string')
+      end
+
+      it 'raises error if product_code is an integer' do
+        expect { basket.add(123) }.to raise_error(ArgumentError, 'product_code must be a string')
+      end
+
+      it 'raises error if product_code is a symbol' do
+        expect { basket.add(:R01) }.to raise_error(ArgumentError, 'product_code must be a string')
+      end
+
+      it 'raises error if product_code is an empty string' do
+        expect { basket.add('') }.to raise_error(ArgumentError, 'product_code cannot be empty')
+      end
+
+      it 'raises error if product_code is whitespace only' do
+        expect { basket.add('   ') }.to raise_error(ArgumentError, 'product_code cannot be empty')
       end
     end
   end
@@ -405,6 +457,49 @@ RSpec.describe Basket do
         # R01 = 32.95 each, G01 = 24.95, subtotal = 90.85
         # Discount: 0 (default empty offers), delivery: 0 (default nil rules), total = 90.85
         expect(basket.total).to eq(90.85)
+      end
+    end
+
+    context 'with negative discount offers' do
+      it 'raises error when offer returns negative discount' do
+        negative_discount_offer = Class.new do
+          def calculate_discount(items, product_catalogue)
+            -10.0  # Negative discount
+          end
+        end.new
+
+        basket_with_negative_offer = Basket.new(
+          product_catalogue: product_catalogue,
+          delivery_charge_rules: delivery_charge_rules,
+          offers: [negative_discount_offer]
+        )
+
+        basket_with_negative_offer.add('R01')
+        expect { basket_with_negative_offer.total }.to raise_error(ArgumentError, 'discounts cannot be negative')
+      end
+
+      it 'raises error when multiple offers result in negative total discount' do
+        # First offer gives positive discount, second gives larger negative discount
+        positive_offer = Class.new do
+          def calculate_discount(items, product_catalogue)
+            5.0
+          end
+        end.new
+
+        negative_offer = Class.new do
+          def calculate_discount(items, product_catalogue)
+            -15.0  # Larger negative discount
+          end
+        end.new
+
+        basket_with_mixed_offers = Basket.new(
+          product_catalogue: product_catalogue,
+          delivery_charge_rules: delivery_charge_rules,
+          offers: [positive_offer, negative_offer]
+        )
+
+        basket_with_mixed_offers.add('R01')
+        expect { basket_with_mixed_offers.total }.to raise_error(ArgumentError, 'discounts cannot be negative')
       end
     end
   end
